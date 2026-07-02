@@ -16,6 +16,8 @@ var (
 	ErrInvalidXAddress = errors.New("invalid x-address")
 	// ErrInvalidTag indicates an invalid tag.
 	ErrInvalidTag = errors.New("invalid tag")
+	// ErrUnsupportedXAddress indicates an x-address with an unsupported tag flag (e.g. 64-bit tags).
+	ErrUnsupportedXAddress = errors.New("unsupported X-address")
 	// ErrInvalidAccountID indicates an invalid account ID.
 	ErrInvalidAccountID = errors.New("invalid account ID")
 	// ErrInvalidAddressFormat indicates a general invalid XRPL address format.

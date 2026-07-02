@@ -137,9 +137,9 @@ func TestDecodeXAddress(t *testing.T) {
 			expectedErr: ErrInvalidXAddress,
 		},
 		{
-			name:        "fail - invalid tag",
+			name:        "fail - unsupported x-address (64-bit tag)",
 			input:       "T719a5UwUCnEs54UsxG9CJYYDhwmFgrRVXpDX5tdrUHz9j1",
-			expectedErr: ErrInvalidTag,
+			expectedErr: ErrUnsupportedXAddress,
 		},
 		{
 			name:  "pass - valid testnet x-address",
@@ -183,6 +183,19 @@ func TestDecodeXAddress(t *testing.T) {
 			expectedTestnet: false,
 			expectedErr:     nil,
 		},
+		{
+			name:  "pass - valid mainnet x-address with 32-bit tag",
+			input: "X7AcgcsBL6XDcUb289X4mJ8djcdyKaM4S135zJJmc3HMChp",
+			expectedAccountId: []byte{
+				94, 123, 17, 37, 35, 246,
+				141, 47, 94, 135, 157, 180,
+				234, 197, 28, 102, 152, 166,
+				147, 4,
+			},
+			expectedTag:     4294967295,
+			expectedTestnet: false,
+			expectedErr:     nil,
+		},
 	}
 
 	for _, tc := range testcases {
@@ -215,9 +228,9 @@ func TestXAddressToClassicAddress(t *testing.T) {
 			expectedErr: ErrInvalidXAddress,
 		},
 		{
-			name:        "fail - invalid tag",
+			name:        "fail - unsupported x-address (64-bit tag)",
 			input:       "T719a5UwUCnEs54UsxG9CJYYDhwmFgrRVXpDX5tdrUHz9j1",
-			expectedErr: ErrInvalidTag,
+			expectedErr: ErrUnsupportedXAddress,
 		},
 		{
 			name:                   "pass - valid testnet x-address",
@@ -232,6 +245,14 @@ func TestXAddressToClassicAddress(t *testing.T) {
 			input:                  "X7AcgcsBL6XDcUb289X4mJ8djcdyKaB5hJDWMArnXr61cqZ",
 			expectedClassicAddress: "r9cZA1mLK5R5Am25ArfXFmqgNwjZgnfk59",
 			expectedTag:            0,
+			expectedTestnet:        false,
+			expectedErr:            nil,
+		},
+		{
+			name:                   "pass - valid mainnet x-address with 32-bit tag",
+			input:                  "X7AcgcsBL6XDcUb289X4mJ8djcdyKaM4S135zJJmc3HMChp",
+			expectedClassicAddress: "r9cZA1mLK5R5Am25ArfXFmqgNwjZgnfk59",
+			expectedTag:            4294967295,
 			expectedTestnet:        false,
 			expectedErr:            nil,
 		},
@@ -308,8 +329,18 @@ func TestDecodeTag(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name:        "fail - invalid tag",
+			name:        "fail - unsupported tag flag (64-bit)",
 			input:       []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedErr: ErrUnsupportedXAddress,
+		},
+		{
+			name:        "fail - flag 1 with non-zero reserved bytes",
+			input:       []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+			expectedErr: ErrInvalidTag,
+		},
+		{
+			name:        "fail - flag 0 with non-zero tag bytes",
+			input:       []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedErr: ErrInvalidTag,
 		},
 		{
@@ -324,11 +355,17 @@ func TestDecodeTag(t *testing.T) {
 			expectedTag: 0,
 			expectedErr: nil,
 		},
+		{
+			name:        "pass - valid 32-bit tag - max",
+			input:       []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 255, 255, 255, 0, 0, 0, 0, 0},
+			expectedTag: 4294967295,
+			expectedErr: nil,
+		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := decodeTag(tc.input)
+			actual, _, err := decodeTag(tc.input)
 			if tc.expectedErr != nil {
 				require.Error(t, err)
 				require.Equal(t, tc.expectedErr.Error(), err.Error())
